@@ -236,10 +236,11 @@ def pie_graph_values():
 def percentage_bar_values():
     """Cuida dos valores da barra de porcentagem."""
 
-    # Aqui, se o não tiver dados, exemplo, se for a primeira vez
-    # que executa o script ou se tiver deletado a tabela, dá erro por
-    # causa da divisão por zero (ZeroDivision). Achei mais facil usar o if,
-    # do que o try except (que ainda não me acostomei bem kk).
+    # Aqui, se não tiver dados, exemplo, se for a primeira vez
+    # que executa o script ou se tiver deletado a tabela, dá erro
+    # por causa da divisão por zero (ZeroDivision). Logo, se
+    # bar_graph_values()[1] == gastos_totais for igual a zero
+    # retorna apenas a receita.
     if bar_graph_values()[1] == 0:
         return bar_graph_values()[0]
     else:

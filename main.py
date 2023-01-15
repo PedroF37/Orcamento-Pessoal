@@ -25,6 +25,9 @@ from view import pie_graph_values, percentage_bar_values
 # bd_create
 from bd_create import create_category, create_revenue, create_expenses
 
+# re
+import re
+
 
 # --------------------------------------------------------------------------- #
 # CONSTANTES E GLOBAIS
@@ -48,6 +51,11 @@ COLORS = [
     '#99bb55', '#ee9944',
     '#444466', '#bb5555'
 ]
+
+
+# Padrões para validações das Entries
+string_pattern = r'^[A-Za-z]+( [A-Za-z]+)*$'
+number_pattern = r'^\d+$'
 
 
 global tree
@@ -313,9 +321,15 @@ def insert_new_category():
             messagebox.showerror('Erro', 'Preencha todos os campos')
             return
 
-    insert_category(category_name)
-    messagebox.showinfo('Sucesso', 'Dados inseridos com sucesso')
-    reset_widgets(new_category_entry)
+    # Só aceita alfabeto
+    category_string = ' '.join(category_name)
+    if re.fullmatch(string_pattern, category_string) is None:
+        messagebox.showerror('Erro', 'Categoria aceita apenas letras')
+        return
+    else:
+        insert_category(category_name)
+        messagebox.showinfo('Sucesso', 'Dados inseridos com sucesso')
+        reset_widgets(new_category_entry)
 
     # Pegando os valores da categoria
     categories = show_category_records()
@@ -343,9 +357,16 @@ def insert_new_renevue():
             messagebox.showerror('Erro', 'Preencha todos os campos')
             return
 
-    insert_revenue(insert_revenue_list)
-    messagebox.showinfo('Sucesso', 'Dados inseridos com sucesso')
-    reset_widgets(revenue_calendar_entry, total_value_revenue_entry)
+    # Só aceita numérico em revenue_value
+    if re.fullmatch(number_pattern, revenue_value) is None:
+        messagebox.showerror(
+            'Erro', 'Quantia aceita apenas digitos [0-9]'
+        )
+        return
+    else:
+        insert_revenue(insert_revenue_list)
+        messagebox.showinfo('Sucesso', 'Dados inseridos com sucesso')
+        reset_widgets(revenue_calendar_entry, total_value_revenue_entry)
 
     # atualizando dados
     refresh_data()
@@ -353,20 +374,38 @@ def insert_new_renevue():
 
 def insert_new_expenses():
     """Função que cuida da inserção de novas despesas."""
-    expense_name = expense_category_combo.get()
-    expense_date = expense_calendar_entry.get()
-    expense_value = total_value_expense_entry.get()
 
-    insert_expense_list = [expense_name, expense_date, expense_value]
+    # Não pode inserir nada se ainda não tiver receita nunhuma.
+    # bar_graph_values()[0] == valor total da receita.
+    if bar_graph_values()[0] == 0:
+        messagebox.showerror(
+            'Erro',
+            'Não pode inserir despesas sem ter uma receita antes'
+        )
+        return
+    else:
+        expense_name = expense_category_combo.get()
+        expense_date = expense_calendar_entry.get()
+        expense_value = total_value_expense_entry.get()
 
-    # Validação
-    for item in insert_expense_list:
-        if item == '':
-            messagebox.showerror('Erro', 'Preencha todos os campos')
+        insert_expense_list = [expense_name, expense_date, expense_value]
+
+        # Validação
+        for item in insert_expense_list:
+            if item == '':
+                messagebox.showerror('Erro', 'Preencha todos os campos')
+                return
+
+        # Só aceita numérico em expense_value
+        if re.fullmatch(number_pattern, expense_value) is None:
+            messagebox.showerror(
+                'Erro', 'Quantia aceita apenas digitos [0-9]'
+            )
             return
+        else:
+            insert_expenses(insert_expense_list)
+            messagebox.showinfo('Sucesso', 'Dados inseridos com sucesso')
 
-    insert_expenses(insert_expense_list)
-    messagebox.showinfo('Sucesso', 'Dados inseridos com sucesso')
     reset_widgets(
         expense_category_combo,
         expense_calendar_entry,
@@ -401,8 +440,10 @@ def edit_data():
 
     if tree.focus() == '':
         messagebox.showerror(
-            'Erro','Tem que selecionar um registro para alterar'
+            'Erro',
+            'Tem que selecionar um registro na TABELA da esquerda para alterar'
         )
+        return
     else:
         treeview_data = tree.focus()
         treeview_dict = tree.item(treeview_data)
@@ -415,13 +456,31 @@ def edit_data():
             messagebox.showerror(
                 'Erro', 'Tem que preencher pelo menos um dos campos'
             )
+            return
         else:
-            update_instruction(
-                treeview_list, replaced_category, replaced_amount
-            )
-            messagebox.showinfo('Sucesso', 'Dados atualizados com sucesso')
-            refresh_data()
-            reset_widgets(alter_category_entry, alter_value_entry)
+            # Agora temos que validar o ou os inputs
+            if replaced_category != '':
+                # Só alfabeto
+                if re.fullmatch(string_pattern, replaced_category) is None:
+                    messagebox.showerror(
+                        'Erro', 'Categoria aceita apenas letras'
+                    )
+                    return
+
+            if replaced_amount != '':
+                # Só digito
+                if re.fullmatch(number_pattern, replaced_amount) is None:
+                    messagebox.showerror(
+                        'Erro', 'Quantia aceita apenas digitos [0-9]'
+                    )
+                    return
+
+        update_instruction(
+            treeview_list, replaced_category, replaced_amount
+        )
+        messagebox.showinfo('Sucesso', 'Dados atualizados com sucesso')
+        refresh_data()
+        reset_widgets(alter_category_entry, alter_value_entry)
 
 
 # --------------------------------------------------------------------------- #
@@ -789,8 +848,8 @@ destroy_img = Image.open('Icones/delete.png')
 destroy_img = destroy_img.resize((17, 17))
 destroy_img = ImageTk.PhotoImage(destroy_img)
 
-# Os espaços são propositais. Para os icones adicionar e deletar
-# ficarem alinhados.
+# Os espaços são propositais. Para os icones
+# adicionar e deletar ficarem alinhados.
 destroy_button = Button(
     alter_table_frame,
     image=destroy_img,
